@@ -1,0 +1,13 @@
+/applicationContext-beans.xml
+/applicationContext-security.xml
+/applicationContext.xml
+/com/
+/db.properties
+/ehcache.xml
+/ems/
+/hibernate.cfg.xml
+/i18n.properties
+/org/
+/struts.xml
+/template/
+/xwork-conversion.properties

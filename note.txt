@@ -1,0 +1,107 @@
+5. checkboxlist 回显的基本原理:
+
+1). 在页面上: 
+
+<s:checkboxlist 
+	list="#attr.roles" 
+	listKey="roleId" 
+	listValue="roleName" 
+	name="roles">
+</s:checkboxlist>
+
+2). 回显时, 需要保证值栈栈顶对象有 roles 这个属性, 即对应的实体类有 getRoles 方法. 
+
+3). getRoles() 方法返回的是和 listKey 的值对应的 List<String> 
+
+4. 修改角色: 正常修改。 
+
+3. 显示角色的详细信息:
+
+1). 显示出某一个角色拥有的所有的权限. 具体显示效果参考截图
+
+2. 角色删除:
+
+1). ajax 判断该角色是否已经被某一个 Employee 引用, 若被引用则弹出: xxx 角色已经被引用, 不能删除
+2). 若没有被引用, 则使用 ajax 进行删除
+
+1. 权限管理的需求:
+
+1). 导航菜单中添加 角色查询 和 角色添加
+
+①. 在 common/tree_data1.json 文件中添加如下导航数据:
+
+{
+	"id":20,
+	"text":"权限管理",
+	"state":"closed",
+	"children":[{
+		"id":2011,
+		"text":"角色查询",
+		"url":"role-list"
+	},{
+		"id":2012,
+		"text":"角色录入",
+		"url":"role-input"
+	}]
+}
+
+2). 角色录入:
+
+①. 相关的实体类: Role, Authority. 其中 Role 和 Authority 之间是单向 n-n 的关联关系. Role 中有对 Authority 的集合引用.
+
+[Role]:
+
+// id
+private Integer roleId;
+
+// 角色名
+private String roleName;
+	
+// 角色拥有的权限集合
+private Set<Authority> authorities = new HashSet<>();
+
+[Authority]:
+
+/**
+ * id
+ */
+private Integer id;
+/**
+ * 权限名称. 供 SpringSecurity 使用的权限的名字. 例如: ROLE_USER_UPDATE
+ */
+private String name; //ROLE_USER_UPDATE
+/**
+ * 在页面上显示的权限的名称. 例如: 用户信息的修改
+ */
+private String displayName; //用户信息修改
+/**
+ * 与当前权限关联的权限信息, 多个权限的 id 使用 "," 分隔. 例如: ,3,4,6,
+ */
+private String relatedAuthorites; 
+/**
+ * 当前权限的父权限
+ */
+private Authority parentAuthority; //用户管理
+/**
+ * 当前权限的子权限
+ */
+private Set<Authority> subAuthorities = new HashSet<Authority>();
+/**
+ * 进入当前权限的 Resource 引用, 和 Resource 之间是多对一的关联关系
+ */
+private Resource mainResource;
+
+②. 显示权限录入页面:
+
+i. Action 方法: 获取所有的父权限(同时获取其关联的所有子权限), 把父权限放入到 request 中, 传入到页面
+
+ii. 在 JSP 页面中子权限被隐藏, 只在 SELECT 中显示所有的父权限
+
+iii. 当选择某一个父权限时, 子权限显示(JS 操作). 
+
+③. 页面的 JS 操作:
+
+i. 角色的级联选择: 当选择某一个权限时, 会自动的勾选其关联的权限; 当取消某一个权限的选择, 则会取消和当前权限关联的那些权限. 
+
+④. 执行角色的录入操作: Action 中执行 save 即可. 在 Role 中添加对应的工具方法. 
+

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+	"-//Apache Software Foundation//DTD Struts Configuration 2.3//EN"
+	"http://struts.apache.org/dtds/struts-2.3.dtd">
+
+<struts>
+
+	<constant name="struts.enable.DynamicMethodInvocation" value="false" />
+	<constant name="struts.devMode" value="true" />
+	
+	<!-- 设置主题 -->
+	<constant name="struts.ui.theme" value="simple"></constant>
+	<!-- 配置国际化资源文件 -->
+	<constant name="struts.custom.i18n.resources" value="i18n"></constant>
+
+	<package name="default" namespace="/" extends="json-default">
+
+		<!-- 修改使用的默认的拦截器栈 -->
+		<interceptors>
+			<interceptor-stack name="sshStack">
+				<interceptor-ref name="paramsPrepareParamsStack">
+					<!-- 取消 Preparable 接的的 prepare 方法被调用 -->
+					<param name="prepare.alwaysInvokePrepare">false</param>
+					<!-- 配置在使用 chain 结果类型时, 赋值前一个Action中的 fieldErrors -->
+					<param name="chain.copyFieldErrors">true</param>
+				</interceptor-ref>
+			</interceptor-stack>
+		</interceptors>
+
+		<default-interceptor-ref name="sshStack"></default-interceptor-ref>
+
+		<!-- 设置全局的 result -->
+		<global-results>
+			<!-- 采取 IO 流返回的 Ajax 的字符串. 若返回 JSON 数据使用另外的 result -->
+			<result name="ajax-success" type="stream">
+				<param name="contentType">text/html</param>
+				<param name="inputName">inputStream</param>
+			</result>			
+			
+			<result name="invalid.page">/common/404.jsp</result>
+			
+			<!-- 文件下载对应的结果 -->
+			<result name="download-success" type="stream">
+				<param name="inputName">inputStream</param>
+			</result>
+		</global-results>
+		
+		<!-- 设置全局异常 -->
+		<global-exception-mappings>
+			<exception-mapping result="invalid.page" exception="com.atguigu.ems.exceptions.InvalidPageException"></exception-mapping>
+		</global-exception-mappings>
+		
+		<action name="emp_upload">
+			<result>/WEB-INF/views/emps/emp_upload.jsp</result>
+		</action>
+
+		<action name="emp-*" class="employeeAction" method="{1}">
+			
+			<!-- 修改指定拦截器的参数 -->
+			<interceptor-ref name="sshStack">
+				<!-- 配置文件上传连接器的参数 -->
+				<param name="fileUpload.maximumSize">2097152</param>
+				<!--  
+				<param name="fileUpload.allowedTypes">application/vnd.ms-excel</param>
+				-->
+				<param name="fileUpload.allowedExtensions">.xls</param>
+			</interceptor-ref>
+			
+			<exception-mapping result="login-input" exception="com.atguigu.ems.exceptions.NotMatchPasswordException"/>
+			<exception-mapping result="login-input" exception="com.atguigu.ems.exceptions.EmployeeNotExitException"/>
+		
+			<result name="success">/WEB-INF/views/login-success.jsp</result>
+			<!-- 验证失败将转发到该页面 -->
+			<result name="login-input">/WEB-INF/views/login.jsp</result>
+			
+			<!-- 员工录入页面 -->
+			<result name="input">/WEB-INF/views/emps/emp-input.jsp</result>
+			<!--  
+				如何转到 input 页面, 且 input 页面中有对应的错误消息, 且需要在其中调用 Action 的 input 的方法.
+				1. 使用 redirectAction: 不能够达到预期的效果. 因为会丢失错误消息. 因为此时是一个全新的 Action. 里面没有错误消息
+				2. 直接转发到  /WEB-INF/views/emps/emp-input.jsp. 此时不会显示部门及角色, 因为没有经过 Action 的 input 方法
+				3. 使用 chain: 不能达到预期效果. 此时会在栈顶新添加一个 Action. 而该 Action 中的 fieldErrors 没有任何错误. 但
+				在这个新的 Action 的下面有一个 Action, 该 Action 中的 fieldErrors 不为 null
+				4. 使用 chain 的方式, 且设置 chain 拦截器的 copyFieldErrors 属性值为 true, 从而复制下面 Action 的 
+				fieldErrors
+			-->
+			<result name="save-input" type="chain">
+				<param name="actionName">emp-input</param>
+			</result>
+			
+			<result name="list">/WEB-INF/views/emps/emp-list.jsp</result>
+			<result name="list-input" type="redirect">/emp-list?page.pageNo=1</result>
+			
+			<result name="upload-input">/WEB-INF/views/emps/emp_upload.jsp</result>
+			
+			<result name="criteria-input">/WEB-INF/views/emps/emp-criteria.jsp</result>	
+		
+			<result name="navigate-success" type="json">
+				<param name="root">navigations</param>
+			</result>
+		</action>
+		
+		<action name="role-*" class="roleAction" method="{1}">
+			<result name="input">/WEB-INF/views/roles/input.jsp</result>
+			<result name="list">/WEB-INF/views/roles/list.jsp</result>
+			<result name="details">/WEB-INF/views/roles/details.jsp</result>
+		</action>
+		
+		<!-- 测试 -->
+		<action name="test-checkboxlist" class="com.atguigu.ems.test.RoleListAction"
+			method="test">
+			<result>/test/checkboxlist.jsp</result>	
+		</action>
+		
+		<!-- 测试 JSON -->
+		<action name="test-json" class="com.atguigu.ems.test.TestJsonAction"
+			method="test">
+			<result type="json">
+				<!-- root 可以指定使用值栈中对象的哪个属性作为返回的 json 的根.  -->
+				<param name="root">cities</param>
+			</result>	
+		</action>
+		
+		<action name="test-emp-list" class="employeeAction2"
+			method="list">
+			<result>/test/emp-list.jsp</result>	
+		</action>
+		
+		<action name="test-emp-criteriaInput" class="employeeAction2"
+			method="criteriaInput">
+			<result>/test/emp-criteria.jsp</result>	
+		</action>
+
+	</package>
+
+</struts>
